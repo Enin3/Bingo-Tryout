@@ -1,0 +1,65 @@
+<<div id="bingo-app" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-500">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-7 space-y-6">
+            <div class="glass-card p-8 shadow-xl flex flex-col items-center bg-white rounded-[2rem]">
+                <h2 class="text-xl font-black text-slate-800 mb-4">BINGO GRID</h2>
+                
+                <div class="flex gap-2 bg-slate-100 p-1 rounded-xl mb-6">
+                    <button v-for="s in [3,4,5]" :key="s" @click="gridSize = s"
+                        :class="['px-3 py-1 rounded-lg text-xs font-bold', gridSize === s ? 'bg-white shadow' : 'text-slate-400']">
+                        {{s}}x{{s}}
+                    </button>
+                </div>
+
+                <div class="grid gap-4" :style="`grid-template-columns: repeat(${gridSize}, 1fr)`">
+                    <div v-for="(cell, idx) in grid" :key="idx"
+                         @click="toggleCell(idx)"
+                         class="w-16 h-16 md:w-20 md:h-20 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center cursor-pointer transition-all hover:scale-105">
+                         <span class="text-[10px] text-slate-400 text-center px-1">{{ cell.task ? cell.task.name : '' }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-[10px] font-bold text-slate-300 tracking-widest uppercase">
+                    PROGRESS: {{ progress }}% | LINES: {{ bingoLines || 0 }}
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+                <h3 class="text-[10px] font-bold text-slate-400 mb-4 uppercase">History Heatmap</h3>
+                <div class="flex flex-wrap gap-1">
+                    <div v-for="day in (heatDays || [])" :key="day.date" class="w-3 h-3 rounded-sm bg-slate-100"></div>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-sm font-bold text-slate-700">Resource Pool</h3>
+                <div class="flex gap-2">
+                    <button @click="addFolder" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors">
+                        📁 +Folder
+                    </button>
+                    <button @click="addTask" class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-100 transition-colors">
+                        📄 +Task
+                    </button>
+                </div>
+            </div>
+
+            <draggable :list="tree" item-key="id" group="tasks" class="space-y-2 min-h-[150px]">
+                <template #item="{element}">
+                    <div class="p-3 bg-slate-50 rounded-xl text-xs border border-slate-100 cursor-move hover:border-indigo-200">
+                        {{ element.type === 'folder' ? '📁 ' : '' }}{{ element.name }}
+                    </div>
+                </template>
+            </draggable>
+
+                <draggable :list="tree" item-key="id" group="tasks" class="space-y-2">
+                    <template #item="{element}">
+                        <div class="p-3 bg-slate-50 rounded-xl text-xs border border-slate-100 cursor-move">
+                            {{ element.name }}
+                        </div>
+                    </template>
+                </draggable>
+            </div>
+
+</div>

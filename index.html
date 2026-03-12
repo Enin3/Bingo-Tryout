@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>My Personal Toolbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <nav class="bg-white border-b p-4 flex gap-4 shadow-sm">
+        <h1 class="font-bold text-slate-700 mr-4">Local OS</h1>
+        <div id="tool-list" class="flex gap-2">
+            <button data-tool="bingo-pro" class="px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 transition-all text-sm font-medium">
+                🏆 人类丰荣 Bingo
+            </button>
+        </div>
+    </nav>
+
+    <main id="tool-container" class="p-6"></main>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
+
