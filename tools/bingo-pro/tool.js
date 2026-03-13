@@ -1,76 +1,125 @@
 export function init() {
-    // 从全局 Vue 对象解构，确保 Vue 已在 index.html 加载
     const { createApp, ref, computed, watch, onMounted } = Vue;
 
-    const app = createApp({
-        components: {
-            // 确保 index.html 引入了 vuedraggable
-            draggable: window.vuedraggable
-        },
+    createApp({
         setup() {
-            // --- 状态定义 ---
             const gridSize = ref(4);
             const grid = ref([]);
-            const tree = ref(JSON.parse(localStorage.getItem('BINGO_TREE')) || [
-                { id: 1, name: '阅读任务', type: 'task' },
-                { id: 2, name: '代码重构', type: 'task' }
-            ]);
-            const menu = ref({ show: false, x: 0, y: 0, cellIdx: null });
+            const doneColor = ref('#10b981'); // 默认完成填色
 
-            // --- 核心逻辑 ---
+            // 1. 初始示例数据 (已精简)
+            const tree = ref(JSON.parse(localStorage.getItem('BINGO_TREE')) || [
+                {
+                    id: 'f1', name: '核心目标', type: 'folder', color: '#6366f1', isOpen: true,
+                    children: [
+                        { id: 't1', name: '继承颜色的任务', type: 'task', weight: 10 },
+                        { id: 't2', name: '自定颜色任务', type: 'task', color: '#f59e0b', weight: 20 }
+                    ]
+                }
+            ]);
+
+            // 2. 模拟 Heatmap 数据
+            const heatDays = ref(Array.from({ length: 98 }, (_, i) => ({
+                level: Math.floor(Math.random() * 5),
+                date: i
+            })));
+
+            // 3. 核心：颜色继承与数据扁平化算法
+            const getTaskFinalColor = (task, parentColor = null) => {
+                if (task.color) return task.color; // 任务自定色号优先
+                return parentColor || '#94a3b8'; // 继承父级色号，否则默认灰色
+            };
+
+            // 4. 矩阵初始化 (包含持久化恢复)
             const initGrid = () => {
                 const count = gridSize.value * gridSize.value;
                 const saved = localStorage.getItem(`BINGO_GRID_${gridSize.value}`);
-                grid.value = saved ? JSON.parse(saved) : Array(count).fill().map(() => ({ task: null, done: false }));
+                grid.value = saved ? JSON.parse(saved) : Array(count).fill().map(() => ({
+                    task: null, done: false, weight: 10
+                }));
             };
-
-            // 监听尺寸变化以重置格子
             watch(gridSize, initGrid, { immediate: true });
 
-            const addTask = () => {
-                const name = prompt("请输入任务名称:");
-                if (name) tree.value.push({ id: Date.now(), name, type: 'task' });
+            // 5. 交互：创建逻辑
+            // 5. 交互：创建逻辑修复
+            const addFolder = () => {
+                const name = prompt("请输入文件夹名称：");
+                if (name) {
+                    // 必须确保包含所有模板用到的 key：color, isOpen, children
+                    const newFolder = {
+                        id: Date.now(),
+                        name: name,
+                        type: 'folder',
+                        color: '#6366f1', // 默认紫色
+                        isOpen: true,
+                        children: []
+                    };
+                    tree.value.push(newFolder);
+                    console.log("文件夹已创建:", newFolder);
+                }
             };
 
-            const addFolder = () => {
-                const name = prompt("请输入文件夹名称:");
-                if (name) tree.value.push({ id: Date.now(), name, type: 'folder', children: [] });
+            const addTask = () => {
+                const name = prompt("请输入任务名称：");
+                if (name) {
+                    // 必须确保包含 weight 和默认 color (null 则继承)
+                    const newTask = {
+                        id: Date.now(),
+                        name: name,
+                        type: 'task',
+                        weight: 10,
+                        color: null
+                    };
+                    tree.value.push(newTask);
+                    console.log("任务已创建:", newTask);
+                }
+            };
+
+            // 6. 交互：拖拽与点击
+            const onDragStart = (evt, item, parentColor) => {
+                const finalTask = { ...item, finalColor: getTaskFinalColor(item, parentColor) };
+                evt.dataTransfer.setData('bingo_task', JSON.stringify(finalTask));
+            };
+
+            const onDrop = (evt, idx) => {
+                evt.preventDefault();
+                const data = evt.dataTransfer.getData('bingo_task');
+                if (data) {
+                    const task = JSON.parse(data);
+                    grid.value[idx].task = task;
+                    grid.value[idx].weight = task.weight || 10; // 绑定权重
+                }
             };
 
             const toggleCell = (idx) => {
-                if (grid.value[idx]) {
+                if (grid.value[idx].task) {
                     grid.value[idx].done = !grid.value[idx].done;
                     if (grid.value[idx].done && window.confetti) window.confetti();
                 }
             };
 
-            // 自动保存数据
+            // 7. 进度计算 (基于权重的加权平均)
+            const progress = computed(() => {
+                const activeCells = grid.value.filter(c => c.task);
+                const totalWeight = activeCells.reduce((s, c) => s + (Number(c.weight) || 0), 0);
+                const doneWeight = activeCells.filter(c => c.done).reduce((s, c) => s + (Number(c.weight) || 0), 0);
+                return totalWeight ? Math.round((doneWeight / totalWeight) * 100) : 0;
+            });
+
+            // 自动保存
             watch([tree, grid], () => {
                 localStorage.setItem('BINGO_TREE', JSON.stringify(tree.value));
                 localStorage.setItem(`BINGO_GRID_${gridSize.value}`, JSON.stringify(grid.value));
             }, { deep: true });
 
             onMounted(() => {
-                setTimeout(() => {
-                    const el = document.getElementById('bingo-app');
-                    if (el) el.style.opacity = '1';
-                }, 100);
+                setTimeout(() => document.getElementById('bingo-app').style.opacity = '1', 100);
             });
 
-            // --- 返回给模板的数据和方法 ---
             return {
-                gridSize, grid, tree, menu,
-                addTask, addFolder, toggleCell,
-                progress: computed(() => {
-                    if (!grid.value.length) return 0;
-                    const done = grid.value.filter(c => c.done).length;
-                    return Math.round((done / grid.value.length) * 100);
-                }),
-                bingoLines: ref(0),
-                heatDays: ref(Array(50).fill({}))
+                gridSize, grid, tree, heatDays, doneColor, progress,
+                addFolder, addTask, onDragStart, onDrop, toggleCell
             };
-        } // setup 结束
-    });
-
-    app.mount('#bingo-app');
+        }
+    }).mount('#bingo-app');
 }
